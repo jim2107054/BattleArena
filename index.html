@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚔️ AI Battle Arena - Grid Tactics</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: #0a0a1a;
+            overflow: hidden;
+        }
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        
+        /* Top HUD */
+        #top-hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 90px;
+            background: linear-gradient(180deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 80%, transparent 100%);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 30px;
+            z-index: 100;
+        }
+        
+        .team-panel {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .team-avatar {
+            width: 65px;
+            height: 65px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            position: relative;
+        }
+        .team-avatar.red {
+            background: linear-gradient(135deg, #ff4757, #c0392b);
+            box-shadow: 0 0 25px rgba(255, 71, 87, 0.5);
+            border: 2px solid #ff6b81;
+        }
+        .team-avatar.blue {
+            background: linear-gradient(135deg, #3742fa, #2980b9);
+            box-shadow: 0 0 25px rgba(55, 66, 250, 0.5);
+            border: 2px solid #5c6cfa;
+        }
+        
+        .team-info h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.1em;
+            color: #fff;
+        }
+        .team-info .ai-type {
+            font-size: 0.85em;
+            color: #888;
+        }
+        
+        .team-stats {
+            display: flex;
+            gap: 20px;
+        }
+        .stat-box {
+            text-align: center;
+        }
+        .stat-box .value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8em;
+            font-weight: 900;
+        }
+        .stat-box .value.red { color: #ff4757; }
+        .stat-box .value.blue { color: #5c6cfa; }
+        .stat-box .value.gold { color: #ffd700; }
+        .stat-box .label {
+            font-size: 0.75em;
+            color: #666;
+            text-transform: uppercase;
+        }
+        
+        .center-score {
+            text-align: center;
+        }
+        .center-score .round {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1em;
+            color: #6c5ce7;
+        }
+        .center-score .total {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.5em;
+            font-weight: 900;
+            background: linear-gradient(135deg, #ffd700, #ff8c00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        /* Turn Indicator */
+        #turn-display {
+            position: absolute;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.85);
+            padding: 12px 30px;
+            border-radius: 30px;
+            color: #fff;
+            font-size: 1.1em;
+            z-index: 100;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        /* Legend Panel */
+        #legend-panel {
+            position: absolute;
+            left: 20px;
+            top: 110px;
+            background: rgba(0,0,0,0.85);
+            padding: 15px;
+            border-radius: 12px;
+            z-index: 100;
+            min-width: 180px;
+        }
+        #legend-panel h4 {
+            color: #fff;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9em;
+            margin-bottom: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            padding-bottom: 8px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 0;
+            color: #ccc;
+            font-size: 0.85em;
+        }
+        .legend-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        
+        /* Action Log */
+        #action-log {
+            position: absolute;
+            right: 20px;
+            top: 110px;
+            width: 280px;
+            max-height: 350px;
+            background: rgba(0,0,0,0.85);
+            border-radius: 12px;
+            padding: 15px;
+            z-index: 100;
+            overflow-y: auto;
+        }
+        #action-log h4 {
+            color: #fff;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+        .log-entry {
+            padding: 8px 10px;
+            margin-bottom: 6px;
+            border-radius: 6px;
+            border-left: 3px solid;
+            background: rgba(255,255,255,0.05);
+            font-size: 0.85em;
+        }
+        .log-entry.red { border-color: #ff4757; color: #ff6b6b; }
+        .log-entry.blue { border-color: #3742fa; color: #74b9ff; }
+        .log-entry.event { border-color: #ffd700; color: #ffeaa7; }
+        .log-entry .points { 
+            font-family: 'Orbitron', sans-serif;
+            color: #ffd700;
+            font-weight: bold;
+        }
+        
+        /* Floating Points */
+        .float-points {
+            position: fixed;
+            pointer-events: none;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            font-size: 28px;
+            z-index: 1000;
+            animation: floatAway 1.5s ease-out forwards;
+            text-shadow: 0 0 15px currentColor;
+        }
+        @keyframes floatAway {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-60px) scale(1.3); }
+        }
+        
+        /* Game Over */
+        #game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, rgba(0,0,0,0.97), rgba(20,20,50,0.97));
+            padding: 40px 50px;
+            border-radius: 20px;
+            text-align: center;
+            z-index: 300;
+            display: none;
+            border: 2px solid rgba(255,215,0,0.4);
+            min-width: 450px;
+        }
+        #game-over h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.2em;
+            margin-bottom: 10px;
+        }
+        #game-over .winner-name { font-size: 1.3em; margin-bottom: 20px; }
+        .rewards-grid {
+            display: grid;
+            gap: 8px;
+            margin: 20px 0;
+        }
+        .reward-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 15px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            color: #ddd;
+        }
+        .reward-row .pts { color: #ffd700; font-family: 'Orbitron', sans-serif; }
+        #game-over .final-score {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.5em;
+            color: #ffd700;
+            margin: 20px 0;
+        }
+        #game-over button {
+            padding: 15px 40px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1em;
+            background: linear-gradient(135deg, #ffd700, #ff8c00);
+            border: none;
+            border-radius: 30px;
+            color: #000;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        #game-over button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(255,215,0,0.5);
+        }
+        
+        /* Controls */
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            z-index: 100;
+        }
+        #controls button {
+            padding: 12px 24px;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 600;
+            font-size: 0.95em;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 25px;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        #controls button:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+        }
+        
+        /* Effects */
+        .critical-flash {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 4em;
+            font-weight: 900;
+            color: #ff0;
+            text-shadow: 0 0 30px #ff0, 0 0 60px #ff0;
+            z-index: 500;
+            animation: critPop 0.7s ease-out forwards;
+            pointer-events: none;
+        }
+        @keyframes critPop {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            40% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+        }
+        
+        #screen-flash {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none;
+            z-index: 400;
+            opacity: 0;
+            transition: opacity 0.1s;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+    
+    <!-- Top HUD -->
+    <div id="top-hud">
+        <div class="team-panel">
+            <div class="team-avatar red">🤖</div>
+            <div class="team-info">
+                <h3>RED TEAM</h3>
+                <div class="ai-type">MINIMAX ALGORITHM</div>
+            </div>
+            <div class="team-stats">
+                <div class="stat-box">
+                    <div class="value red" id="red-units">4</div>
+                    <div class="label">Units</div>
+                </div>
+                <div class="stat-box">
+                    <div class="value gold" id="red-score">0</div>
+                    <div class="label">Score</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="center-score">
+            <div class="round" id="round-num">ROUND 1</div>
+            <div class="total" id="total-score">0</div>
+        </div>
+        
+        <div class="team-panel" style="flex-direction: row-reverse;">
+            <div class="team-avatar blue">🤖</div>
+            <div class="team-info" style="text-align: right;">
+                <h3>BLUE TEAM</h3>
+                <div class="ai-type">GREEDY ALGORITHM</div>
+            </div>
+            <div class="team-stats">
+                <div class="stat-box">
+                    <div class="value blue" id="blue-units">4</div>
+                    <div class="label">Units</div>
+                </div>
+                <div class="stat-box">
+                    <div class="value gold" id="blue-score">0</div>
+                    <div class="label">Score</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="turn-display">⚔️ Preparing Battle...</div>
+    
+    <!-- Legend -->
+    <div id="legend-panel">
+        <h4>🗺️ MAP LEGEND</h4>
+        <div class="legend-item"><span class="legend-icon" style="background:#8b4513;">🚪</span> Door (Passable)</div>
+        <div class="legend-item"><span class="legend-icon" style="background:#87ceeb;">🪟</span> Window (Cover +15)</div>
+        <div class="legend-item"><span class="legend-icon" style="background:#2d3436;">🧱</span> Wall (Blocked)</div>
+        <div class="legend-item"><span class="legend-icon" style="background:#27ae60;">🌳</span> Tree (Cover +10)</div>
+        <div class="legend-item"><span class="legend-icon" style="background:#636e72;">📦</span> Crate (Cover +20)</div>
+        <div class="legend-item"><span class="legend-icon" style="background:#ffd700;">⭐</span> Power-up (+50 pts)</div>
+    </div>
+    
+    <!-- Action Log -->
+    <div id="action-log">
+        <h4>📜 BATTLE LOG</h4>
+        <div id="log-content"></div>
+    </div>
+    
+    <!-- Game Over -->
+    <div id="game-over">
+        <h2 id="winner-title">🏆 VICTORY!</h2>
+        <div class="winner-name" id="winner-name"></div>
+        <div class="rewards-grid" id="rewards-grid"></div>
+        <div class="final-score" id="final-score">0 PTS</div>
+        <button onclick="startGame()">⚔️ BATTLE AGAIN</button>
+    </div>
+    
+    <!-- Controls -->
+    <div id="controls">
+        <button onclick="startGame()">🎮 NEW GAME</button>
+        <button onclick="toggleSpeed()" id="btn-speed">⚡ NORMAL</button>
+        <button onclick="togglePause()" id="btn-pause">⏸️ PAUSE</button>
+        <button onclick="cycleCamera()">📷 CAMERA</button>
+    </div>
+    
+    <div id="screen-flash"></div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
